@@ -1,0 +1,47 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg-primary: #0a0e1a;
+  --bg-secondary: #0d1526;
+  --bg-card: #111d35;
+  --border-color: #1a3a6b;
+  --accent-blue: #00d4ff;
+  --accent-cyan: #00ffcc;
+  --accent-purple: #7b61ff;
+  --text-primary: #e8f4ff;
+  --text-secondary: #7a9cc0;
+  --text-muted: #4a6a8a;
+  --success: #00e676;
+  --warning: #ffab40;
+  --danger: #ff5252;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+
+#app {
+  width: 100vw;
+  height: 100vh;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 2px;
+}
