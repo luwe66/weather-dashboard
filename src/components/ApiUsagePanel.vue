@@ -49,8 +49,7 @@ defineEmits(['toggle'])
 const chartRef = ref(null)
 let chart = null
 
-const stats = computed(() => getUsageStats())
-
+const stats = ref({})
 const currentMonth = new Date().toISOString().slice(0, 7)
 
 const currentMonthCount = computed(() => stats.value[currentMonth] || 0)
@@ -110,25 +109,29 @@ function buildChartOption(data) {
   }
 }
 
+async function loadStats() {
+  stats.value = await getUsageStats()
+  if (chart && Object.keys(stats.value).length) {
+    chart.setOption(buildChartOption(stats.value))
+  }
+}
+
 function initChart() {
   if (!chartRef.value) return
   chart = echarts.init(chartRef.value, null, { renderer: 'canvas' })
-  const data = getUsageStats()
-  if (Object.keys(data).length) {
-    chart.setOption(buildChartOption(data))
+  if (Object.keys(stats.value).length) {
+    chart.setOption(buildChartOption(stats.value))
   }
 }
 
 watch(() => props.refreshKey, () => {
-  const data = getUsageStats()
-  if (chart && Object.keys(data).length) {
-    chart.setOption(buildChartOption(data))
-  }
+  loadStats()
 })
 
 const resizeObserver = new ResizeObserver(() => chart?.resize())
 
-onMounted(() => {
+onMounted(async () => {
+  await loadStats()
   initChart()
   if (chartRef.value) resizeObserver.observe(chartRef.value)
 })

@@ -92,6 +92,7 @@ import {
   getHourlyForecast,
   getAirQuality,
   getAstronomy,
+  isLimitExceeded,
 } from './api/weather.js'
 
 // 默认城市：北京
@@ -124,6 +125,13 @@ function updateClock() {
 
 async function loadWeather() {
   if (!apiEnabled.value) return
+  // 发请求前先检查是否已超限
+  if (isLimitExceeded()) {
+    apiEnabled.value = false
+    error.value = '本月请求已达 30,000 次上限，已自动关闭请求'
+    loading.value = false
+    return
+  }
   loading.value = true
   error.value = ''
   try {
@@ -158,7 +166,12 @@ async function loadWeather() {
     lastUpdateTime.value = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
     usageRefreshKey.value++
   } catch (e) {
-    error.value = `数据加载失败：${e.message}`
+    if (e.message === 'LIMIT_EXCEEDED') {
+      apiEnabled.value = false
+      error.value = '本月请求已达 30,000 次上限，已自动关闭请求'
+    } else {
+      error.value = `数据加载失败：${e.message}`
+    }
   } finally {
     loading.value = false
   }
