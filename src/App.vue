@@ -12,6 +12,14 @@
       <div class="header-right">
         <span class="status-dot" :class="{ active: apiEnabled }"></span>
         <span class="status-text">{{ apiEnabled ? '实时数据' : '已暂停' }}</span>
+        <button class="fullscreen-btn" @click="toggleFullscreen" :title="isFullscreen ? '退出全屏' : '全屏'">
+          <svg v-if="!isFullscreen" class="fullscreen-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 3H22V9H20V5H16V3H20ZM4 3H8V5H4V9H2V3H4ZM20 19V15H22V21H16V19H20ZM4 19H8V21H2V15H4V19Z"/>
+          </svg>
+          <svg v-else class="fullscreen-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+            <path d="M18 7H22V9H16V3H18V7ZM8 7V3H10V9H4V7H8ZM18 17V21H16V15H22V17H18ZM8 17H4V15H10V21H8V17Z"/>
+          </svg>
+        </button>
       </div>
     </header>
 
@@ -110,6 +118,22 @@ const lastUpdateTime = ref('--')
 const currentTime = ref('')
 const apiEnabled = ref(true)
 const usageRefreshKey = ref(0)
+const isFullscreen = ref(false)
+
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen()
+    isFullscreen.value = true
+  } else {
+    document.exitFullscreen()
+    isFullscreen.value = false
+  }
+}
+
+// 监听 ESC 退出全屏
+document.addEventListener('fullscreenchange', () => {
+  isFullscreen.value = !!document.fullscreenElement
+})
 
 let refreshTimer = null
 let clockTimer = null
@@ -283,6 +307,34 @@ onUnmounted(() => {
 .status-text {
   font-size: 12px;
   color: var(--text-muted);
+}
+
+.fullscreen-btn {
+  background: none;
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s;
+  padding: 0;
+}
+
+.fullscreen-btn:hover {
+  border-color: var(--accent-blue);
+}
+
+.fullscreen-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted);
+}
+
+.fullscreen-btn:hover .fullscreen-icon {
+  color: var(--accent-blue);
 }
 
 /* 主网格 */

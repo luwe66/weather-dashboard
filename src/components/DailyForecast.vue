@@ -9,7 +9,7 @@
         :class="{ today: index === 0 }"
       >
         <span class="day-label">{{ index === 0 ? '今天' : formatDay(day.fxDate) }}</span>
-        <span class="day-icon">{{ getIcon(day.textDay) }}</span>
+        <img :src="`/icons/${day.iconDay}.svg`" class="day-icon-img" :alt="day.textDay" />
         <span class="day-text">{{ day.textDay }}</span>
         <div class="temp-range">
           <span class="temp-low">{{ day.tempMin }}°</span>
@@ -46,18 +46,6 @@ function formatDay(dateStr) {
   const date = new Date(dateStr)
   const days = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
   return days[date.getDay()]
-}
-
-function getIcon(text) {
-  const map = {
-    '晴': '☀️', '多云': '⛅', '阴': '☁️', '小雨': '🌧️',
-    '中雨': '🌧️', '大雨': '⛈️', '暴雨': '⛈️', '雪': '❄️',
-    '小雪': '🌨️', '雾': '🌫️', '霾': '🌫️', '雷阵雨': '⛈️',
-  }
-  for (const [key, icon] of Object.entries(map)) {
-    if (text?.includes(key)) return icon
-  }
-  return '🌤️'
 }
 
 function getTempBarStyle(min, max) {
@@ -121,8 +109,10 @@ function getTempBarStyle(min, max) {
   font-weight: 600;
 }
 
-.day-icon {
-  font-size: 18px;
+.day-icon-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
 }
 
 .day-text {

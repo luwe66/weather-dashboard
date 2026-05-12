@@ -13,7 +13,7 @@
     </div>
 
     <div class="weather-desc">
-      <span class="weather-icon">{{ weatherIcon }}</span>
+      <img :src="`/icons/${now.icon}.svg`" class="weather-icon-img" :alt="now.text" />
       <span class="weather-text">{{ now.text }}</span>
     </div>
 
@@ -45,19 +45,6 @@ const props = defineProps({
   now: { type: Object, required: true },
   city: { type: Object, required: true },
   updateTime: { type: String, default: '--' },
-})
-
-const weatherIconMap = {
-  '晴': '☀️', '多云': '⛅', '阴': '☁️', '小雨': '🌧️',
-  '中雨': '🌧️', '大雨': '⛈️', '暴雨': '⛈️', '雪': '❄️',
-  '小雪': '🌨️', '雾': '🌫️', '霾': '🌫️', '雷阵雨': '⛈️',
-}
-
-const weatherIcon = computed(() => {
-  for (const [key, icon] of Object.entries(weatherIconMap)) {
-    if (props.now.text?.includes(key)) return icon
-  }
-  return '🌤️'
 })
 </script>
 
@@ -125,8 +112,10 @@ const weatherIcon = computed(() => {
   gap: 8px;
 }
 
-.weather-icon {
-  font-size: 24px;
+.weather-icon-img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
 }
 
 .weather-text {
