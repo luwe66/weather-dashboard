@@ -4,11 +4,7 @@
       <h3 class="section-title">API 用量</h3>
       <div class="toggle-wrapper">
         <span class="toggle-label">{{ enabled ? '请求中' : '已暂停' }}</span>
-        <button
-          class="toggle-btn"
-          :class="{ active: enabled }"
-          @click="$emit('toggle')"
-        >
+        <button class="toggle-btn" :class="{ active: enabled }" @click="$emit('toggle')">
           <span class="toggle-dot"></span>
         </button>
       </div>
@@ -29,7 +25,15 @@
       <div class="usage-percent">{{ usagePercent }}% 已使用</div>
     </div>
 
-    <!-- 历史图表 -->
+    <div class="divider"></div>
+
+    <!-- 年用量标题 -->
+    <div class="year-header">
+      <span class="section-title">API 年用量</span>
+      <span class="year-label">{{ currentYear }}</span>
+    </div>
+
+    <!-- 横向条形图 -->
     <div ref="chartRef" class="usage-chart"></div>
   </div>
 </template>
@@ -51,6 +55,7 @@ let chart = null
 
 const stats = ref({})
 const currentMonth = new Date().toISOString().slice(0, 7)
+const currentYear = new Date().getFullYear().toString()
 
 const currentMonthCount = computed(() => stats.value[currentMonth] || 0)
 
@@ -68,42 +73,78 @@ const usageColor = computed(() => {
 })
 
 function buildChartOption(data) {
-  const months = Object.keys(data).sort()
-  const counts = months.map(m => data[m])
+  // 只显示当前年份的月份数据
+  const year = currentYear
+  const months = []
+  const counts = []
+  for (let m = 1; m <= 12; m++) {
+    const key = `${year}-${String(m).padStart(2, '0')}`
+    months.push(`${m}月`)
+    counts.push(data[key] || 0)
+  }
+
+  const maxVal = Math.max(...counts, 1)
 
   return {
     backgroundColor: 'transparent',
-    grid: { top: 10, right: 8, bottom: 20, left: 36 },
+    grid: { top: 4, right: 48, bottom: 4, left: 28, containLabel: false },
     tooltip: {
       trigger: 'axis',
-      backgroundColor: 'rgba(13, 21, 38, 0.9)',
+      axisPointer: { type: 'none' },
+      backgroundColor: 'rgba(13, 21, 38, 0.95)',
       borderColor: '#1a3a6b',
       textStyle: { color: '#e8f4ff', fontSize: 11 },
-      formatter: (params) => `${params[0].axisValue}<br/>请求 ${params[0].value} 次`,
+      formatter: (params) => `${params[0].name}<br/>请求 ${params[0].value} 次`,
     },
     xAxis: {
-      type: 'category',
-      data: months.map(m => m.slice(5)),
-      axisLabel: { color: '#4a6a8a', fontSize: 10 },
-      axisLine: { lineStyle: { color: '#1a3a6b' } },
-      splitLine: { show: false },
+      type: 'value',
+      max: maxVal,
+      axisLabel: { show: false },
+      axisLine: { show: false },
+      axisTick: { show: false },
+      splitLine: {
+        lineStyle: { color: 'rgba(74,106,138,0.2)', type: 'dashed', width: 0.5 },
+      },
     },
     yAxis: {
-      type: 'value',
-      axisLabel: { color: '#4a6a8a', fontSize: 10 },
-      splitLine: { lineStyle: { color: '#1a3a6b', type: 'dashed' } },
-      axisLine: { show: false },
+      type: 'category',
+      data: months,
+      inverse: false,
+      axisLabel: {
+        color: '#4a6a8a',
+        fontSize: 10,
+        margin: 6,
+      },
+      axisLine: { lineStyle: { color: 'rgba(74,106,138,0.5)' } },
+      axisTick: { show: false },
     },
     series: [{
       type: 'bar',
       data: counts,
-      barWidth: '50%',
+      barWidth: 10,
+      barGap: '30%',
       itemStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: 'rgba(0, 212, 255, 0.8)' },
-          { offset: 1, color: 'rgba(0, 212, 255, 0.2)' },
-        ]),
-        borderRadius: [3, 3, 0, 0],
+        color: (params) => {
+          const isCurrentMonth = months[params.dataIndex] === `${new Date().getMonth() + 1}月`
+          if (isCurrentMonth) {
+            return new echarts.graphic.LinearGradient(1, 0, 0, 0, [
+              { offset: 0, color: 'rgba(0, 212, 255, 0.8)' },
+              { offset: 1, color: 'rgba(0, 212, 255, 0.1)' },
+            ])
+          }
+          return new echarts.graphic.LinearGradient(1, 0, 0, 0, [
+            { offset: 0, color: 'rgba(0, 212, 255, 0.6)' },
+            { offset: 1, color: 'rgba(0, 212, 255, 0.1)' },
+          ])
+        },
+        borderRadius: [0, 3, 3, 0],
+      },
+      label: {
+        show: true,
+        position: 'right',
+        color: '#4a6a8a',
+        fontSize: 10,
+        formatter: (params) => params.value > 0 ? params.value : '',
       },
     }],
   }
@@ -119,14 +160,10 @@ async function loadStats() {
 function initChart() {
   if (!chartRef.value) return
   chart = echarts.init(chartRef.value, null, { renderer: 'canvas' })
-  if (Object.keys(stats.value).length) {
-    chart.setOption(buildChartOption(stats.value))
-  }
+  chart.setOption(buildChartOption(stats.value))
 }
 
-watch(() => props.refreshKey, () => {
-  loadStats()
-})
+watch(() => props.refreshKey, () => loadStats())
 
 const resizeObserver = new ResizeObserver(() => chart?.resize())
 
@@ -148,16 +185,18 @@ onUnmounted(() => {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 12px;
-  height: 100%;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  height: 100%;
+  overflow: hidden;
 }
 
 .panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .section-title {
@@ -182,7 +221,6 @@ onUnmounted(() => {
   width: 36px;
   height: 20px;
   border-radius: 10px;
-  border: none;
   background: var(--bg-secondary);
   cursor: pointer;
   position: relative;
@@ -215,6 +253,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  flex-shrink: 0;
 }
 
 .usage-header {
@@ -257,8 +296,29 @@ onUnmounted(() => {
   text-align: right;
 }
 
+.divider {
+  height: 1px;
+  background: var(--border-color);
+  flex-shrink: 0;
+  margin: 0 -20px;
+}
+
+.year-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.year-label {
+  font-size: 13px;
+  color: var(--text-primary);
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
 .usage-chart {
   flex: 1;
-  min-height: 80px;
+  min-height: 0;
 }
 </style>

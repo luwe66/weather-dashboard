@@ -1,5 +1,5 @@
 <template>
-  <div class="dashboard">
+  <div class="dashboard" @click.self="closePanel">
     <!-- 顶部栏 -->
     <header class="header">
       <div class="header-left">
@@ -12,16 +12,38 @@
       <div class="header-right">
         <span class="status-dot" :class="{ active: apiEnabled }"></span>
         <span class="status-text">{{ apiEnabled ? '实时数据' : '已暂停' }}</span>
+        <!-- API 用量入口 -->
+        <button class="api-usage-btn" @click.stop="togglePanel">
+          <span class="api-usage-count" :style="{ color: apiCountColor }">{{ currentMonthUsage }}</span>
+          <span class="api-usage-label">API 用量</span>
+          <svg class="api-usage-arrow" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M13.172 12l-4.95-4.95 1.414-1.414L16 12l-6.364 6.364-1.414-1.414z"/>
+          </svg>
+        </button>
         <button class="fullscreen-btn" @click="toggleFullscreen" :title="isFullscreen ? '退出全屏' : '全屏'">
-          <svg v-if="!isFullscreen" class="fullscreen-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+          <svg v-if="!isFullscreen" class="fullscreen-icon" viewBox="0 0 24 24" fill="currentColor">
             <path d="M20 3H22V9H20V5H16V3H20ZM4 3H8V5H4V9H2V3H4ZM20 19V15H22V21H16V19H20ZM4 19H8V21H2V15H4V19Z"/>
           </svg>
-          <svg v-else class="fullscreen-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+          <svg v-else class="fullscreen-icon" viewBox="0 0 24 24" fill="currentColor">
             <path d="M18 7H22V9H16V3H18V7ZM8 7V3H10V9H4V7H8ZM18 17V21H16V15H22V17H18ZM8 17H4V15H10V21H8V17Z"/>
           </svg>
         </button>
       </div>
     </header>
+
+    <!-- API 用量悬浮窗 -->
+    <Transition name="panel-slide">
+      <div v-if="showPanel" class="api-panel-popup" @click.stop>
+        <ApiUsagePanel
+          :enabled="apiEnabled"
+          :refresh-key="usageRefreshKey"
+          @toggle="toggleApi"
+        />
+      </div>
+    </Transition>
+
+    <!-- 点击空白关闭遮罩 -->
+    <div v-if="showPanel" class="panel-overlay" @click="closePanel"></div>
 
     <!-- 加载状态 -->
     <div v-if="loading" class="loading-overlay">
@@ -67,18 +89,11 @@
         />
       </div>
 
-      <!-- 右列 -->
-      <div class="col-right">
+      <!-- 右列（仅空气质量，无 API 面板） -->
+      <div v-if="airData" class="col-right">
         <AirQuality
-          v-if="airData"
           :air="airData"
           class="card-air"
-        />
-        <ApiUsagePanel
-          :enabled="apiEnabled"
-          :refresh-key="usageRefreshKey"
-          class="card-usage"
-          @toggle="toggleApi"
         />
       </div>
     </main>
@@ -86,7 +101,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import CurrentWeather from './components/CurrentWeather.vue'
 import DailyForecast from './components/DailyForecast.vue'
 import HourlyChart from './components/HourlyChart.vue'
@@ -101,9 +116,9 @@ import {
   getAirQuality,
   getAstronomy,
   isLimitExceeded,
+  getUsageStats,
 } from './api/weather.js'
 
-// 默认城市：北京
 const currentCity = ref({ id: '101010100', name: '北京', adm1: '北京市', adm2: '北京', country: '中国', lat: '39.90', lon: '116.40' })
 
 const nowWeather = ref(null)
@@ -119,6 +134,32 @@ const currentTime = ref('')
 const apiEnabled = ref(true)
 const usageRefreshKey = ref(0)
 const isFullscreen = ref(false)
+const showPanel = ref(false)
+const usageStats = ref({})
+
+// 顶栏用量显示
+const currentMonthUsage = computed(() => {
+  const month = new Date().toISOString().slice(0, 7)
+  const count = usageStats.value[month] || 0
+  return count >= 1000 ? `${(count / 1000).toFixed(1)}k` : count
+})
+
+const apiCountColor = computed(() => {
+  const month = new Date().toISOString().slice(0, 7)
+  const count = usageStats.value[month] || 0
+  const pct = (count / 50000) * 100
+  if (pct < 60) return 'var(--success)'
+  if (pct < 85) return 'var(--warning)'
+  return 'var(--danger)'
+})
+
+function togglePanel() {
+  showPanel.value = !showPanel.value
+}
+
+function closePanel() {
+  showPanel.value = false
+}
 
 function toggleFullscreen() {
   if (!document.fullscreenElement) {
@@ -130,7 +171,6 @@ function toggleFullscreen() {
   }
 }
 
-// 监听 ESC 退出全屏
 document.addEventListener('fullscreenchange', () => {
   isFullscreen.value = !!document.fullscreenElement
 })
@@ -149,7 +189,6 @@ function updateClock() {
 
 async function loadWeather() {
   if (!apiEnabled.value) return
-  // 发请求前先检查是否已超限
   if (isLimitExceeded()) {
     apiEnabled.value = false
     error.value = '本月请求已达 30,000 次上限，已自动关闭请求'
@@ -169,7 +208,6 @@ async function loadWeather() {
       getAstronomy(id, today),
     ])
 
-    // 空气质量单独请求，失败不影响主流程
     try {
       const air = await getAirQuality(currentCity.value.lat, currentCity.value.lon)
       airData.value = air
@@ -180,7 +218,6 @@ async function loadWeather() {
     nowWeather.value = now
     dailyData.value = daily
     hourlyData.value = hourly
-    // 日出日落格式：2026-05-10T05:06+08:00，取 T 后面的时间部分
     const parseTime = (t) => t ? t.slice(t.indexOf('T') + 1, t.indexOf('T') + 6) : '--:--'
     astronomy.value = {
       sunrise: parseTime(astro.sunrise),
@@ -189,6 +226,8 @@ async function loadWeather() {
 
     lastUpdateTime.value = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
     usageRefreshKey.value++
+    // 同步刷新顶栏用量显示
+    usageStats.value = await getUsageStats()
   } catch (e) {
     if (e.message === 'LIMIT_EXCEEDED') {
       apiEnabled.value = false
@@ -205,7 +244,7 @@ function startRefresh() {
   clearInterval(refreshTimer)
   refreshTimer = setInterval(() => {
     if (apiEnabled.value) loadWeather()
-  }, 20 * 60 * 1000) // 20分钟刷新
+  }, 20 * 60 * 1000)
 }
 
 function toggleApi() {
@@ -218,9 +257,11 @@ function onCitySelect(city) {
   loadWeather()
 }
 
-onMounted(() => {
+onMounted(async () => {
   updateClock()
   clockTimer = setInterval(updateClock, 1000)
+  // 初始化用量数据
+  usageStats.value = await getUsageStats()
   loadWeather()
   startRefresh()
 })
@@ -239,25 +280,27 @@ onUnmounted(() => {
   flex-direction: column;
   background: var(--bg-primary);
   overflow: hidden;
+  position: relative;
 }
 
 /* 顶部栏 */
 .header {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
   padding: 12px 24px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
   gap: 16px;
+  position: relative;
+  z-index: 10;
 }
 
 .header-left {
   display: flex;
   align-items: center;
   gap: 16px;
-  min-width: 200px;
 }
 
 .logo {
@@ -274,15 +317,13 @@ onUnmounted(() => {
 }
 
 .header-center {
-  flex: 1;
-  max-width: 320px;
+  width: 320px;
 }
 
 .header-right {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-width: 100px;
   justify-content: flex-end;
 }
 
@@ -306,6 +347,39 @@ onUnmounted(() => {
 
 .status-text {
   font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* API 用量入口按钮 */
+.api-usage-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.api-usage-btn:hover {
+  background: rgba(255,255,255,0.05);
+}
+
+.api-usage-count {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.api-usage-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.api-usage-arrow {
+  width: 14px;
+  height: 14px;
   color: var(--text-muted);
 }
 
@@ -337,15 +411,49 @@ onUnmounted(() => {
   color: var(--accent-blue);
 }
 
-/* 主网格 */
+/* API 用量悬浮窗 */
+.panel-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 19;
+}
+
+.api-panel-popup {
+  position: fixed;
+  top: 63px;
+  right: 16px;
+  width: 400px;
+  height: 820px;
+  z-index: 20;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.panel-slide-enter-active,
+.panel-slide-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.panel-slide-enter-from,
+.panel-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+/* 主网格 - 去掉右列固定宽度，自适应 */
 .main-grid {
   flex: 1;
   display: grid;
-  grid-template-columns: 280px 1fr 280px;
+  grid-template-columns: 280px 1fr;
   gap: 12px;
   padding: 12px 16px;
   min-height: 0;
   overflow: hidden;
+}
+
+/* 有空气质量时显示右列 */
+.main-grid:has(.col-right) {
+  grid-template-columns: 280px 1fr 280px;
 }
 
 .col-left,
@@ -362,8 +470,7 @@ onUnmounted(() => {
 .card-sun { height: 200px; flex-shrink: 0; }
 .card-hourly { height: 200px; flex-shrink: 0; }
 .card-daily { flex: 1; min-height: 0; overflow-y: auto; }
-.card-air { height: 280px; flex-shrink: 0; }
-.card-usage { flex: 1; min-height: 0; }
+.card-air { flex: 1; min-height: 0; }
 
 /* 加载/错误 */
 .loading-overlay,
