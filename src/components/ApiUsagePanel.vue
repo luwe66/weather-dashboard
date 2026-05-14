@@ -27,10 +27,30 @@
 
     <div class="divider"></div>
 
-    <!-- 年用量标题 -->
+    <!-- 年用量标题 + 年份下拉 -->
     <div class="year-header">
       <span class="section-title">API 年用量</span>
-      <span class="year-label">{{ currentYear }}</span>
+      <div class="year-selector" @click.stop>
+        <button class="year-btn" @click="toggleYearDropdown">
+          <span>{{ selectedYear }}</span>
+          <svg class="year-arrow" :class="{ open: showYearDropdown }" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M11.9999 13.1714L16.9497 8.22168L18.3639 9.63589L11.9999 15.9999L5.63599 9.63589L7.0502 8.22168L11.9999 13.1714Z"/>
+          </svg>
+        </button>
+        <Transition name="dropdown">
+          <div v-if="showYearDropdown" class="year-dropdown">
+            <button
+              v-for="y in availableYears"
+              :key="y"
+              class="year-option"
+              :class="{ active: y === selectedYear }"
+              @click="selectYear(y)"
+            >
+              {{ y }}
+            </button>
+          </div>
+        </Transition>
+      </div>
     </div>
 
     <!-- 横向条形图 -->
@@ -56,6 +76,34 @@ let chart = null
 const stats = ref({})
 const currentMonth = new Date().toISOString().slice(0, 7)
 const currentYear = new Date().getFullYear().toString()
+const selectedYear = ref(currentYear)
+const showYearDropdown = ref(false)
+
+// 可选年份：从当前年往前推到2024
+const availableYears = computed(() => {
+  const thisYear = new Date().getFullYear()
+  const years = []
+  for (let y = thisYear; y >= 2024; y--) {
+    years.push(y.toString())
+  }
+  return years
+})
+
+function hasDataForYear(year) {
+  return Object.keys(stats.value).some(k => k.startsWith(year))
+}
+
+function toggleYearDropdown() {
+  showYearDropdown.value = !showYearDropdown.value
+}
+
+function selectYear(year) {
+  selectedYear.value = year
+  showYearDropdown.value = false
+  if (chart) chart.setOption(buildChartOption(stats.value))
+}
+
+watch(() => props.refreshKey, () => loadStats())
 
 const currentMonthCount = computed(() => stats.value[currentMonth] || 0)
 
@@ -73,8 +121,8 @@ const usageColor = computed(() => {
 })
 
 function buildChartOption(data) {
-  // 只显示当前年份的月份数据
-  const year = currentYear
+  // 显示选中年份的月份数据
+  const year = selectedYear.value
   const months = []
   const counts = []
   for (let m = 1; m <= 12; m++) {
@@ -83,7 +131,7 @@ function buildChartOption(data) {
     counts.push(data[key] || 0)
   }
 
-  const maxVal = Math.max(...counts, 1)
+  const maxVal = Math.max(...counts, 100) // 无数据时 max 设为 100，保证坐标轴正常显示
 
   return {
     backgroundColor: 'transparent',
@@ -125,7 +173,8 @@ function buildChartOption(data) {
       barGap: '30%',
       itemStyle: {
         color: (params) => {
-          const isCurrentMonth = months[params.dataIndex] === `${new Date().getMonth() + 1}月`
+          const isCurrentMonth = selectedYear.value === currentYear &&
+            months[params.dataIndex] === `${new Date().getMonth() + 1}月`
           if (isCurrentMonth) {
             return new echarts.graphic.LinearGradient(1, 0, 0, 0, [
               { offset: 0, color: 'rgba(0, 212, 255, 0.8)' },
@@ -310,11 +359,87 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
-.year-label {
-  font-size: 13px;
+.year-selector {
+  position: relative;
+}
+
+.year-btn {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
   color: var(--text-primary);
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: 1px;
+}
+
+.year-arrow {
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.year-arrow.open {
+  transform: rotate(180deg);
+}
+
+.year-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 4px 0;
+  z-index: 100;
+  min-width: 62px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.year-option {
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  height: 17px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  width: 100%;
+  text-align: left;
+  transition: color 0.15s;
+  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+
+.year-option:hover {
+  color: var(--text-primary);
+}
+
+.year-option.active {
+  color: var(--accent-blue);
+  font-weight: 600;
+}
+
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.dropdown-enter-from,
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
 }
 
 .usage-chart {

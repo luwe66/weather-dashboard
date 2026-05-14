@@ -5,6 +5,11 @@
       <div class="header-left">
         <h1 class="logo">⛅ 天气大屏</h1>
         <span class="current-time">{{ currentTime }}</span>
+        <!-- 版本切换 -->
+        <div class="version-tabs">
+          <button class="version-tab" :class="{ active: currentVersion === 'v1' }" @click="currentVersion = 'v1'">v1.0</button>
+          <button class="version-tab" :class="{ active: currentVersion === 'v2' }" @click="currentVersion = 'v2'">v2.0</button>
+        </div>
       </div>
       <div class="header-center">
         <CitySearch @select="onCitySelect" />
@@ -58,7 +63,9 @@
     </div>
 
     <!-- 主内容 -->
-    <main v-else class="main-grid">
+    <template v-else>
+      <!-- v1.0 -->
+      <main v-if="currentVersion === 'v1'" class="main-grid">
       <!-- 左列 -->
       <div class="col-left">
         <CurrentWeather
@@ -97,6 +104,18 @@
         />
       </div>
     </main>
+
+      <!-- v2.0 -->
+      <main v-else class="main-v2">
+        <DashboardV2
+          :city="currentCity"
+          :now="nowWeather"
+          :hourly="hourlyData"
+          :daily="dailyData"
+          @city-select="onCitySelect"
+        />
+      </main>
+    </template>
   </div>
 </template>
 
@@ -109,6 +128,7 @@ import AirQuality from './components/AirQuality.vue'
 import SunriseSunset from './components/SunriseSunset.vue'
 import CitySearch from './components/CitySearch.vue'
 import ApiUsagePanel from './components/ApiUsagePanel.vue'
+import DashboardV2 from './components/v2/DashboardV2.vue'
 import {
   getNowWeather,
   getDailyForecast,
@@ -135,6 +155,7 @@ const apiEnabled = ref(true)
 const usageRefreshKey = ref(0)
 const isFullscreen = ref(false)
 const showPanel = ref(false)
+const currentVersion = ref('v2')
 const usageStats = ref({})
 
 // 顶栏用量显示
@@ -314,6 +335,39 @@ onUnmounted(() => {
   font-size: 13px;
   color: var(--text-muted);
   white-space: nowrap;
+}
+
+/* 版本切换 */
+.version-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.version-tab {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.version-tab.active {
+  background: var(--accent-blue);
+  color: #000;
+  font-weight: 600;
+}
+
+.version-tab:not(.active):hover {
+  color: var(--text-primary);
 }
 
 .header-center {
@@ -505,5 +559,12 @@ onUnmounted(() => {
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
+}
+
+/* v2.0 */
+.main-v2 {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
 }
 </style>
