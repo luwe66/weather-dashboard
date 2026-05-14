@@ -12,7 +12,8 @@
         </div>
       </div>
       <div class="header-center">
-        <CitySearch @select="onCitySelect" />
+        <CitySearchV2 v-if="currentVersion === 'v2'" @select="onCitySelect" />
+        <CitySearch v-else @select="onCitySelect" />
       </div>
       <div class="header-right">
         <span class="status-dot" :class="{ active: apiEnabled }"></span>
@@ -127,6 +128,7 @@ import HourlyChart from './components/HourlyChart.vue'
 import AirQuality from './components/AirQuality.vue'
 import SunriseSunset from './components/SunriseSunset.vue'
 import CitySearch from './components/CitySearch.vue'
+import CitySearchV2 from './components/v2/CitySearchV2.vue'
 import ApiUsagePanel from './components/ApiUsagePanel.vue'
 import DashboardV2 from './components/v2/DashboardV2.vue'
 import {

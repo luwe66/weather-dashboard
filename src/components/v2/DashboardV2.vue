@@ -10,6 +10,7 @@
         <div class="top-left">
           <LocationSelector :city="city" @select="$emit('citySelect', $event)" />
           <div class="weather-text">{{ now?.text || '--' }}</div>
+          <div class="top-spacer"></div>
           <div class="big-temp">
             <span class="temp-num">{{ now?.temp || '--' }}</span>
             <span class="temp-unit">°C</span>
@@ -45,12 +46,12 @@
 
         <!-- 中：图表 + 数据块（weather 模式） -->
         <div class="center-col" v-if="activeNav === 'weather'">
-          <!-- 24h 图表卡片 -->
+          <!-- 24h 图表卡片，标题随选中数据变化 -->
           <div class="glass-card chart-card">
-            <div class="card-title">24小时温度</div>
+            <div class="card-title">24小时{{ metrics.find(m => m.key === activeMetric)?.label || '温度' }}曲线</div>
             <div ref="chartRef" class="chart-area"></div>
           </div>
-          <!-- 数据块卡片 -->
+          <!-- 数据块卡片，单位在数值右侧 -->
           <div class="glass-card metrics-card">
             <button
               v-for="m in metrics"
@@ -60,8 +61,10 @@
               @click="switchMetric(m.key)"
             >
               <span class="m-label">{{ m.label }}</span>
-              <span class="m-value">{{ m.value }}</span>
-              <span class="m-unit">{{ m.unit }}</span>
+              <div class="m-value-row">
+                <span class="m-value">{{ m.value }}</span>
+                <span class="m-unit" v-if="m.unit">{{ m.unit }}</span>
+              </div>
             </button>
           </div>
         </div>
@@ -379,9 +382,14 @@ onUnmounted(() => {
 .metric-block.active { background: rgba(0,212,255,0.1); border-color: rgba(0,212,255,0.35); }
 
 .m-label { font-size: 11px; color: var(--text-muted); }
+.m-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
 .m-value { font-size: 16px; font-weight: 600; color: var(--text-primary); }
 .metric-block.active .m-value { color: var(--accent-blue); }
-.m-unit { font-size: 10px; color: var(--text-muted); }
+.m-unit { font-size: 11px; color: var(--text-muted); }
 
 /* 占位 */
 .placeholder-col { display: flex; align-items: center; justify-content: center; }
@@ -405,12 +413,27 @@ onUnmounted(() => {
 }
 
 /* 上方天气区内容 */
-.top-left { display: flex; flex-direction: column; gap: 6px; }
-.weather-text { font-size: 36px; font-weight: 300; color: var(--text-primary); line-height: 1; margin-top: 8px; }
+.top-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  height: 100%;
+}
+
+.top-spacer { flex: 1; }
+
+/* 天气状况：大字，参考设计图约 48px */
+.weather-text {
+  font-size: 48px;
+  font-weight: 300;
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+
 .big-temp { display: flex; align-items: flex-start; line-height: 1; }
 .temp-num { font-size: 80px; font-weight: 200; color: var(--text-primary); line-height: 1; }
 .temp-unit { font-size: 28px; color: var(--text-secondary); margin-top: 8px; margin-left: 4px; }
-.date-str { font-size: 13px; color: var(--text-muted); }
+.date-str { font-size: 14px; color: var(--text-muted); margin-top: 4px; }
 .top-right { flex-shrink: 0; }
 .big-weather-icon { width: 180px; height: 180px; filter: drop-shadow(0 0 32px rgba(0,212,255,0.2)); }
 </style>
