@@ -51,12 +51,24 @@ const favorites = ref([])
 
 const STORAGE_KEY = 'weather_favorites'
 
+const DEFAULT_FAVORITES = [
+  { id: '101180803', name: '南阳', adm1: '河南省', adm2: '南阳市', country: '中国', lat: '32.99', lon: '112.53' },
+  { id: '101280601', name: '深圳', adm1: '广东省', adm2: '深圳市', country: '中国', lat: '22.54', lon: '114.06' },
+  { id: '101010100', name: '北京', adm1: '北京市', adm2: '北京',   country: '中国', lat: '39.90', lon: '116.40' },
+]
+
 function loadFavorites() {
   try {
     const stored = localStorage.getItem(STORAGE_KEY)
-    favorites.value = stored ? JSON.parse(stored) : []
+    if (stored) {
+      favorites.value = JSON.parse(stored)
+    } else {
+      // 首次访问写入默认收藏
+      favorites.value = [...DEFAULT_FAVORITES]
+      saveFavorites()
+    }
   } catch {
-    favorites.value = []
+    favorites.value = [...DEFAULT_FAVORITES]
   }
 }
 

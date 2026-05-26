@@ -1,13 +1,13 @@
 <template>
   <div class="daily-v2">
-    <!-- 日期切换 -->
+    <!-- 日期切换 tabs -->
     <div class="day-tabs">
       <button
         v-for="(day, i) in daily"
         :key="day.fxDate"
         class="day-tab"
         :class="{ active: selectedIndex === i }"
-        @click="selectedIndex = i"
+        @click="$emit('select', i)"
       >
         <span class="tab-label">{{ i === 0 ? '今天' : formatDay(day.fxDate) }}</span>
         <img :src="`/icons/${day.iconDay}.svg`" class="tab-icon" :alt="day.textDay" />
@@ -26,6 +26,7 @@
           :key="day.fxDate"
           class="temp-bar-row"
           :class="{ selected: i === selectedIndex }"
+          @click="$emit('select', i)"
         >
           <span class="bar-day">{{ i === 0 ? '今' : formatDayShort(day.fxDate) }}</span>
           <span class="bar-low">{{ day.tempMin }}°</span>
@@ -35,25 +36,32 @@
           <span class="bar-high">{{ day.tempMax }}°</span>
         </div>
       </div>
+      <p class="update-hint">更新于 {{ updateTime }}</p>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 
 const props = defineProps({
   daily: { type: Array, default: () => [] },
+  selectedIndex: { type: Number, default: 0 },
 })
 
-const selectedIndex = ref(0)
+defineEmits(['select'])
 
-const selectedDay = computed(() => props.daily[selectedIndex.value])
+const selectedDay = computed(() => props.daily[props.selectedIndex] || null)
 
 const selectedDateLabel = computed(() => {
   if (!selectedDay.value) return ''
   const date = new Date(selectedDay.value.fxDate)
   return date.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' })
+})
+
+const updateTime = computed(() => {
+  const now = new Date()
+  return `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`
 })
 
 const allTemps = computed(() => {
@@ -87,57 +95,57 @@ function getTempBarStyle(min, max) {
 .daily-v2 {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   height: 100%;
 }
 
-/* 日期 tabs */
+/* 日期 tabs：7个全部显示，缩小图标和间距 */
 .day-tabs {
   display: flex;
-  gap: 4px;
-  overflow-x: auto;
-  scrollbar-width: none;
+  gap: 3px;
   flex-shrink: 0;
 }
-
-.day-tabs::-webkit-scrollbar { display: none; }
 
 .day-tab {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 6px 10px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  gap: 3px;
+  padding: 5px 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s;
-  flex-shrink: 0;
-  min-width: 52px;
+  flex: 1;
+  min-width: 0;
 }
 
 .day-tab:hover {
-  background: rgba(0, 212, 255, 0.06);
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .day-tab.active {
-  background: rgba(0, 212, 255, 0.12);
-  border-color: rgba(0, 212, 255, 0.4);
+  background: rgba(0, 212, 255, 0.15);
+  border-color: rgba(0, 212, 255, 0.5);
 }
 
 .tab-label {
-  font-size: 11px;
-  color: var(--text-muted);
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.6);
+  white-space: nowrap;
+  text-shadow: 1px 1px 0 rgba(0,0,0,0.9);
 }
 
 .day-tab.active .tab-label {
-  color: var(--accent-blue);
+  color: #00d4ff;
+  font-weight: 600;
 }
 
+/* 图标缩小到 18px，让7个都能放下 */
 .tab-icon {
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
 }
 
 /* 温度区间图 */
@@ -145,7 +153,7 @@ function getTempBarStyle(min, max) {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   min-height: 0;
   overflow: hidden;
 }
@@ -159,19 +167,21 @@ function getTempBarStyle(min, max) {
 
 .temp-date {
   font-size: 12px;
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.8);
+  text-shadow: 1px 1px 0 rgba(0,0,0,0.9);
 }
 
 .temp-desc {
   font-size: 12px;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.5);
+  text-shadow: 1px 1px 0 rgba(0,0,0,0.9);
 }
 
 .temp-bars {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   overflow-y: auto;
   min-height: 0;
 }
@@ -181,35 +191,48 @@ function getTempBarStyle(min, max) {
   grid-template-columns: 20px 28px 1fr 28px;
   align-items: center;
   gap: 6px;
-  padding: 4px 6px;
+  padding: 5px 6px;
   border-radius: 6px;
+  cursor: pointer;
   transition: background 0.15s;
 }
 
+.temp-bar-row:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .temp-bar-row.selected {
-  background: rgba(0, 212, 255, 0.06);
+  background: rgba(0, 212, 255, 0.1);
 }
 
 .bar-day {
   font-size: 11px;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.5);
   text-align: center;
+  text-shadow: 1px 1px 0 rgba(0,0,0,0.9);
+}
+
+.temp-bar-row.selected .bar-day {
+  color: #00d4ff;
+  font-weight: 600;
 }
 
 .bar-low {
   font-size: 12px;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.45);
   text-align: right;
+  text-shadow: 1px 1px 0 rgba(0,0,0,0.9);
 }
 
 .bar-high {
   font-size: 12px;
-  color: var(--text-primary);
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 1px 1px 0 rgba(0,0,0,0.9);
 }
 
 .bar-track {
   height: 4px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.3);
   border-radius: 2px;
   position: relative;
 }
@@ -218,6 +241,14 @@ function getTempBarStyle(min, max) {
   position: absolute;
   height: 100%;
   border-radius: 2px;
-  background: linear-gradient(90deg, var(--accent-blue), var(--warning));
+  background: linear-gradient(90deg, #00d4ff, #ffab40);
+}
+
+.update-hint {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  text-align: right;
+  flex-shrink: 0;
+  text-shadow: 1px 1px 0 rgba(0,0,0,0.9);
 }
 </style>

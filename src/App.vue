@@ -141,7 +141,7 @@ import {
   getUsageStats,
 } from './api/weather.js'
 
-const currentCity = ref({ id: '101010100', name: '北京', adm1: '北京市', adm2: '北京', country: '中国', lat: '39.90', lon: '116.40' })
+const currentCity = ref({ id: '101280601', name: '深圳', adm1: '广东省', adm2: '深圳市', country: '中国', lat: '22.54', lon: '114.06' })
 
 const nowWeather = ref(null)
 const dailyData = ref([])
@@ -312,8 +312,10 @@ onUnmounted(() => {
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   padding: 12px 24px;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
   flex-shrink: 0;
   gap: 16px;
   position: relative;
@@ -344,8 +346,8 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 2px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 6px;
   padding: 2px;
 }
@@ -357,7 +359,7 @@ onUnmounted(() => {
   padding: 3px 10px;
   border-radius: 4px;
   font-size: 12px;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.7);
   transition: all 0.15s;
   white-space: nowrap;
 }
@@ -369,7 +371,7 @@ onUnmounted(() => {
 }
 
 .version-tab:not(.active):hover {
-  color: var(--text-primary);
+  color: #fff;
 }
 
 .header-center {
@@ -403,7 +405,7 @@ onUnmounted(() => {
 
 .status-text {
   font-size: 12px;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.6);
 }
 
 /* API 用量入口按钮 */
@@ -420,7 +422,7 @@ onUnmounted(() => {
 }
 
 .api-usage-btn:hover {
-  background: rgba(255,255,255,0.05);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .api-usage-count {
@@ -430,18 +432,18 @@ onUnmounted(() => {
 
 .api-usage-label {
   font-size: 12px;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .api-usage-arrow {
   width: 14px;
   height: 14px;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .fullscreen-btn {
   background: none;
-  border: 1px solid var(--border-color);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   cursor: pointer;
   width: 28px;
   height: 28px;
@@ -460,7 +462,7 @@ onUnmounted(() => {
 .fullscreen-icon {
   width: 14px;
   height: 14px;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .fullscreen-btn:hover .fullscreen-icon {
