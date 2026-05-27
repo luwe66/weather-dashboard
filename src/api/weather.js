@@ -34,9 +34,9 @@ export async function getNowWeather(locationId) {
   return data.now
 }
 
-// 7天预报
+// 10天预报
 export async function getDailyForecast(locationId) {
-  const url = `${BASE_URL}/weather/7d?location=${locationId}&key=${API_KEY}`
+  const url = `${BASE_URL}/weather/10d?location=${locationId}&key=${API_KEY}`
   const data = await request(url)
   return data.daily
 }

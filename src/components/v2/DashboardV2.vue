@@ -1,21 +1,10 @@
 <template>
   <div class="dashboard-v2">
-    <div class="bg-layer" :style="bgStyle"></div>
-    <div class="bg-overlay"></div>
-
-    <!-- 视频背景 -->
-    <Transition name="bg-fade">
-      <video
-        v-if="videoSrc"
-        :key="videoSrc"
-        :src="videoSrc"
-        class="bg-video"
-        autoplay
-        loop
-        muted
-        playsinline
-      ></video>
-    </Transition>
+    <!-- CSS 动画天气背景 -->
+    <WeatherBackground
+      :weather-code="Number(displayNow?.icon || 100)"
+      :weather-text="displayNow?.text || ''"
+    />
 
     <div class="content-wrap">
 
@@ -112,6 +101,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import * as echarts from 'echarts'
 import LocationSelector from './LocationSelector.vue'
 import DailyForecastV2 from './DailyForecastV2.vue'
+import WeatherBackground from './WeatherBackground.vue'
 
 const props = defineProps({
   city: { type: Object, required: true },
@@ -181,7 +171,7 @@ function switchMetric(key) {
   updateChart()
 }
 
-// 视频背景
+// 视频背景（已由 WeatherBackground 组件接管，保留 videoSrc 供兼容）
 const weatherToPinyin = {
   '多云': 'duoyun',
   '阴': 'yintian',
@@ -335,41 +325,6 @@ onUnmounted(() => {
   min-height: 100%;
   overflow: auto;
   min-width: 1200px;
-}
-
-.bg-layer {
-  position: fixed;
-  inset: 0;
-  background: linear-gradient(160deg, #050e20, #0a1e3a 50%, #051530);
-  transition: background 1.5s ease;
-  z-index: 0;
-}
-
-.bg-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.15);
-  z-index: 0;
-}
-
-/* 视频背景 */
-.bg-video {
-  position: fixed;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  z-index: 0;
-}
-
-.bg-fade-enter-active,
-.bg-fade-leave-active {
-  transition: opacity 1s ease;
-}
-
-.bg-fade-enter-from,
-.bg-fade-leave-to {
-  opacity: 0;
 }
 
 /* 1200px 居中，内容固定尺寸，不足时出现滚动条 */

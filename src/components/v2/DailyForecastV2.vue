@@ -1,7 +1,7 @@
 <template>
   <div class="daily-v2">
-    <!-- 日期切换 tabs -->
-    <div class="day-tabs">
+    <!-- 两排 5×2 日期 tabs -->
+    <div class="day-grid">
       <button
         v-for="(day, i) in daily"
         :key="day.fxDate"
@@ -9,7 +9,8 @@
         :class="{ active: selectedIndex === i }"
         @click="$emit('select', i)"
       >
-        <span class="tab-label">{{ i === 0 ? '今天' : formatDay(day.fxDate) }}</span>
+        <span class="tab-weekday">{{ i === 0 ? '今天' : formatWeekday(day.fxDate) }}</span>
+        <span class="tab-date">{{ formatMonthDay(day.fxDate) }}</span>
         <img :src="`/icons/${day.iconDay}.svg`" class="tab-icon" :alt="day.textDay" />
       </button>
     </div>
@@ -70,10 +71,15 @@ const allTemps = computed(() => {
   return { min: Math.min(...mins), max: Math.max(...maxs) }
 })
 
-function formatDay(dateStr) {
+function formatWeekday(dateStr) {
   const date = new Date(dateStr)
   const days = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
   return days[date.getDay()]
+}
+
+function formatMonthDay(dateStr) {
+  const date = new Date(dateStr)
+  return `${date.getMonth() + 1}/${date.getDate()}`
 }
 
 function formatDayShort(dateStr) {
@@ -99,10 +105,12 @@ function getTempBarStyle(min, max) {
   height: 100%;
 }
 
-/* 日期 tabs：7个全部显示，缩小图标和间距 */
-.day-tabs {
-  display: flex;
-  gap: 3px;
+/* 两排 5×2 网格 */
+.day-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(2, auto);
+  gap: 4px;
   flex-shrink: 0;
 }
 
@@ -110,15 +118,13 @@ function getTempBarStyle(min, max) {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  padding: 5px 4px;
+  gap: 4px;
+  padding: 8px 4px;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s;
-  flex: 1;
-  min-width: 0;
 }
 
 .day-tab:hover {
@@ -130,22 +136,31 @@ function getTempBarStyle(min, max) {
   border-color: rgba(0, 212, 255, 0.5);
 }
 
-.tab-label {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.6);
+.tab-weekday {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
   white-space: nowrap;
   text-shadow: 1px 1px 0 rgba(0,0,0,0.9);
 }
 
-.day-tab.active .tab-label {
+.day-tab.active .tab-weekday {
   color: #00d4ff;
-  font-weight: 600;
 }
 
-/* 图标缩小到 18px，让7个都能放下 */
+.tab-date {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+  text-shadow: 1px 1px 0 rgba(0,0,0,0.9);
+}
+
+.day-tab.active .tab-date {
+  color: rgba(0, 212, 255, 0.7);
+}
+
 .tab-icon {
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
 }
 
 /* 温度区间图 */
@@ -181,7 +196,7 @@ function getTempBarStyle(min, max) {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   overflow-y: auto;
   min-height: 0;
 }
@@ -191,7 +206,7 @@ function getTempBarStyle(min, max) {
   grid-template-columns: 20px 28px 1fr 28px;
   align-items: center;
   gap: 6px;
-  padding: 5px 6px;
+  padding: 4px 6px;
   border-radius: 6px;
   cursor: pointer;
   transition: background 0.15s;
